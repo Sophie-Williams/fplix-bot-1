@@ -3,16 +3,10 @@ The bot for CodeWar Challenge 2017 - Fplix game
 
 ## Usage
 
-- Compile:
+- Compile & run:
 
 ```
-g++ bugBot.cpp
-```
-
-- Run:
-
-```
-./a.out
+./run.sh
 ```
 
 ## Note
