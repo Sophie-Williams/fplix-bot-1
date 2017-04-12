@@ -100,7 +100,8 @@ void makeBestMove(){
             break;
     }
     lastMove = (realMove + 1) % 4;
-    printMove(lastMove);
+    realMove = static_cast<semanticMoves>(lastMove);
+    printMove(realMove);
 }
 
 
