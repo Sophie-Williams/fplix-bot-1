@@ -33,7 +33,7 @@ int firstMove;
 void initBoard(){
     for (int i = 0; i < nRows; i++)
         for (int j = 0; j < nColumns; j++){
-            board[i][j] = 0;
+            board[i][j] = 9;
         }
 }
 
@@ -62,28 +62,47 @@ void printMove(semanticMoves move){
 }
 
 bool isThisMoveValid(semanticMoves move){
+    semanticMoves lastSemanticMove;
+    bool isFirstMove = false;
+    if (lastMove == -1)
+      isFirstMove = true;
+    else
+      lastSemanticMove = static_cast<semanticMoves>(lastMove);
+
     switch (move) {
         case RIGHT: {
+            if (!isFirstMove && lastSemanticMove == LEFT)
+              return false;
             if ((curCol + 1 < nColumns) && (board[curRow][curCol + 1] != unstable))
                 return true;
             return false;
         }
         case UP: {
+            if (!isFirstMove && lastSemanticMove == DOWN)
+              return false;
             if ((curRow - 1 >= 0 ) && (board[curRow - 1][curCol] != unstable))
                 return true;
             return false;
         }
         case LEFT: {
+            if (!isFirstMove && lastSemanticMove == RIGHT)
+              return false;
             if ((curCol - 1 >= 0 ) && (board[curRow][curCol - 1] != unstable))
                 return true;
             return false;
         }
         case DOWN: {
+            if (!isFirstMove && lastSemanticMove == UP)
+              return false;
             if ((curRow + 1 < nRows ) && (board[curRow + 1][curCol] != unstable))
                 return true;
             return false;
         }
     }
+}
+
+semanticMoves defensiveMove() {
+  return RIGHT;
 }
 
 void makeBestMove(){
@@ -94,13 +113,14 @@ void makeBestMove(){
     //     randomMove = rand() % 4;
     //     semanticMoves realMove = static_cast<semanticMoves>(randomMove);
     // }
-    for (int i = 0; i < 4; i ++){
-         semanticMoves realMove = static_cast<semanticMoves>(i);
+
+    int i;
+    for (i = 0; i < 4; i++){
+         realMove = static_cast<semanticMoves>(i);
          if (isThisMoveValid(realMove))
             break;
     }
-    lastMove = (realMove + 1) % 4;
-    realMove = static_cast<semanticMoves>(lastMove);
+    lastMove = i;
     printMove(realMove);
 }
 
@@ -115,17 +135,18 @@ int main() {
     cin >> botId;
     stable = 2 * botId - 1;
     unstable = stable + 1;
+    lastMove = -1;
     //cout << "Unstable: " << " " << unstable << endl;
 
     while(true){
         if (!feof(stdin)){
             // Read current state of the board
             for (int i = 0; i < nRows; i++){
-                for (int j = 0; j < nColumns - 1; j++){
+                for (int j = 0; j < nColumns; j++){
                     cin >> temp;
                     board[i][j] = temp - 48;
                 }
-                cin >> temp;
+                // cin >> temp;
             }
 
             // Read current position of all bots
@@ -137,7 +158,7 @@ int main() {
                 }
                 //board[tempRow][tempCol] = 10 * i; //TODO: Mapping function
             }
-            //printBoard();
+            // printBoard();
             makeBestMove();
         }
     }
