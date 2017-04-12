@@ -110,10 +110,23 @@ bool isThisMoveValid(semanticMoves move, int& nextVal){
 }
 
 semanticMoves defensiveMove(){
+  int i, nextVal;
+  semanticMoves realMove;
   for (i = 0; i < 4; i++){
     realMove = static_cast<semanticMoves>(i);
     if (isThisMoveValid(realMove, nextVal))
-      break;
+      if (nextVal == stable)
+        return realMove;
+  }
+}
+
+semanticMoves noNameMove(){
+  int i, nextVal;
+  semanticMoves realMove;
+  for (i = 0; i < 4; i++){
+    realMove = static_cast<semanticMoves>(i);
+    if (isThisMoveValid(realMove, nextVal))
+      return realMove;
   }
 }
 
@@ -128,14 +141,14 @@ void makeBestMove(){
 
   int i;
   int nextVal;
-  for (i = 0; i < 4; i++){
-    realMove = static_cast<semanticMoves>(i);
-    if (isThisMoveValid(realMove, nextVal))
-      break;
-  }
+
+  // You want to try a new strategy?
+  // Please create a method with descriptive name and call it like this
+  // realMove = noNameMove();
+  realMove = defensiveMove();
+
+
   lastMove = realMove;
-  cout << lastMove;
-  cout << nextVal << endl;
   printMove(realMove);
 }
 
