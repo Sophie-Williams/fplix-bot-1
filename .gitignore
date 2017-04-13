@@ -1,2 +1,4 @@
 *.o
-
+bugBot
+bugBot.dSYM
+.bugBot.cpp.swp
