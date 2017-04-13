@@ -1,4 +1,6 @@
-// v1.0.6
+
+
+// v1.0.13
 
 #include <map>
 #include <set>
@@ -195,6 +197,19 @@ int numAdjStableCell(int x, int y) {
     return count;
 }
 
+int distanceToAnotherBot(int x, int y) {
+    int res = 0;
+    for (int i = 1; i <= nBots - 1; i++) {
+        int u = currentBotPosition[i].x;
+        int v = currentBotPosition[i].y;
+
+        if (abs(u - x) + abs(v - y) > res) 
+            res = abs(u - x) + abs(v - y);
+    }
+
+    return res;
+}
+
 semanticMoves safeStrategyFromStable() {
     // reset q and visited
     q = queue< pair<int, int> >();
@@ -214,11 +229,17 @@ semanticMoves safeStrategyFromStable() {
         int u = q.front().first;
         int v = q.front().second;
         q.pop();
+
         for (int i = 0; i <= 3; i++) {
             int uNext = u + dX[i];
             int vNext = v + dY[i];
+
+            // NOTE
             semanticMoves move = static_cast<semanticMoves>(i);
+
             if (visited[uNext][vNext]) continue;
+            if (distanceToAnotherBot(uNext, vNext) < 4 && lastMove != -1) continue;
+
             if (isStableCell(uNext, vNext)) {
                 visited[uNext][vNext] = true;
                 q.push(make_pair(uNext, vNext));    
@@ -263,6 +284,22 @@ semanticMoves safeStrategyFromStable() {
         u = uu;
         v = vv;
     }
+
+    int nextVal;
+    //random move
+    for (int i = 0; i <= 3; i++) {
+//        int r = rand() % 3;     
+        int uu = curRow + dX[i];
+        int vv = curCol + dY[i];
+        semanticMoves move = static_cast<semanticMoves>(i);
+
+        if (isThisMoveValid(move, nextVal)) {
+            if (isStableCell(uu, vv)) {
+                return move;
+
+            }
+        }
+    }
 }
 
 bool isDangerous() {
@@ -275,7 +312,8 @@ bool isDangerous() {
 
 //                    DEBUG(u);
 //                    DEBUG(v);
-                    if (abs(u - i) + abs(v - j) <= 5) return true;
+//                    NOTE
+                    if (abs(u - i) + abs(v - j) <= 3) return true;
                 }
             }
         }
@@ -457,3 +495,4 @@ int main() {
         }
     }
 }
+
