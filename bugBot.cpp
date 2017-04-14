@@ -1,6 +1,5 @@
 
-
-// v1.0.13
+// v1.2.0
 
 #include <map>
 #include <set>
@@ -52,7 +51,27 @@ Position trace[nRows + 5][nColumns + 5];
 queue< pair<int, int> > q;
 bool visited[nRows + 5][nColumns + 5];
 
+Position currentDestination = {-1, -1};
+vector<Position> exDestination;
 
+int *perm;
+
+semanticMoves moveBeforeGoOutTo(int u, int v);
+semanticMoves otherStrategyMove();
+semanticMoves greedyMove();
+
+int f[nRows + 5][nColumns + 5];
+
+// variables here
+int sample[4][4] = {{0, 1, 2, 3}, {1, 2, 0, 3}, {2, 1, 0, 3}, {3, 2, 0, 1}};
+
+int *getPerm() {
+	srand (time(NULL));
+	int r = rand() % 4;
+	int *perm = sample[r];
+
+	return perm;
+}
 
 void initBoard(){
     for (int i = 0; i < nRows; i++) {
@@ -67,7 +86,7 @@ void printBoard(){
     for (int i = 0; i < nRows; i++){
         for (int j = 0; j < nColumns; j++) {
             cout << board[i][j];
-//            cout << board[i][nColumns - 1] << endl;
+            //            cout << board[i][nColumns - 1] << endl;
         }
         cout << endl;
     }
@@ -167,8 +186,11 @@ semanticMoves fromPosition(int destRow, int destCol) {
 }
 
 bool isPosOfAnotherBot(int x, int y) {
+//    DEBUG(x);
+//    DEBUG(y);
     for (int i = 1; i <= nBots - 1; i++) {
         if (x == currentBotPosition[i].x && y == currentBotPosition[i].y) {
+
             return true;
         }
     }
@@ -207,24 +229,186 @@ int distanceToAnotherBot(int x, int y) {
             res = abs(u - x) + abs(v - y);
     }
 
+//    cout << res << endl;
     return res;
 }
 
-semanticMoves safeStrategyFromStable() {
-    // reset q and visited
+semanticMoves dumbStableMove() {
+    int nextVal;
+    //random move
+    for (int i = 0; i <= 3; i++) {
+        int uu = curRow + dX[i];
+        int vv = curCol + dY[i];
+        semanticMoves move = static_cast<semanticMoves>(i);
+
+        if (isThisMoveValid(move, nextVal)) {
+            if (isStableCell(uu, vv)) {
+                return move;
+            }
+        }
+    }
+
+    for (int i = 0; i <= 3; i++) {
+        int uu = curRow + dX[i];
+        int vv = curCol + dY[i];
+        semanticMoves move = static_cast<semanticMoves>(i);
+
+        if (isThisMoveValid(move, nextVal)) {
+            return move;
+        }
+    }
+    
+    return static_cast<semanticMoves>(0);
+}
+
+semanticMoves moveBeforeGoOutTo(int u, int v) {
+// cout << "den day" << endl;
+
+    for (int i = 1; i <= nBots - 1; i++) {
+        int xBot = currentBotPosition[i].x;
+        int yBot = currentBotPosition[i].y;
+
+        if (abs(xBot - curRow) + abs(yBot - curCol) <= 4) {
+            exDestination.push_back({u, v});
+                       
+            return otherStrategyMove();
+        }
+    }
+    
+    exDestination.clear();
+    currentDestination = {-1, -1};
+    return fromPosition(u, v);
+    
+}
+
+semanticMoves greedyMove() {
+
+    int minDistance = 10000000;
+    int minX = 0;
+    int minY = 0;
+    int nextVal;
+    perm = getPerm();
+
+
+    for (int i = 0; i <= 3; i++) {
+        int uNext = curRow + dX[perm[i]];
+        int vNext = curCol + dY[perm[i]];
+//        if (!isStableCell(uNext, vNext)) continue;
+
+        semanticMoves move = static_cast<semanticMoves>(perm[i]);
+        if (isThisMoveValid(move, nextVal)) {
+            int distance = abs(uNext - currentDestination.x) + abs(vNext - currentDestination.y);
+//            DEBUG(distance);
+//            DEBUG(uNext);
+//            DEBUG(vNext);
+            if (distance < minDistance) {
+                minDistance = distance;
+                minX = uNext;
+                minY = vNext;
+            }
+
+            if (distance == minDistance && isStableCell(uNext, vNext) && !isStableCell(minX, minY)) {
+                minDistance = distance;
+                minX = uNext;
+                minY = vNext;
+            }
+        }
+    }
+//    DEBUG(currentDestination.x);   
+//    DEBUG(currentDestination.y); 
+//    DEBUG(minX);
+//    DEBUG(minY);
+//    DEBUG(minDistance);
+
+    int cnt = 0;
+    if (minDistance < (abs(curRow - currentDestination.x) + abs(curCol - currentDestination.y))) {
+
+//        cout << "vo day" << endl;
+
+        if (minX == currentDestination.x && minY == currentDestination.y) {
+            return moveBeforeGoOutTo(minX, minY);
+        }
+        //    currentDestination = {-1, -1};
+
+//        std::random_shuffle(perm, perm + 4);
+
+
+        perm = getPerm();
+
+//        PR0(perm, 4);
+        if (!isStableCell(minX, minY)) {
+            bool ok = false;
+            for (int k = 0; k <= 3; k++) {
+                int uNext = curRow + dX[perm[k]];
+                int vNext = curCol + dY[perm[k]];
+
+                if (!isStableCell(uNext, vNext)) continue;
+                semanticMoves move = static_cast<semanticMoves>(perm[k]);
+                if (isThisMoveValid(move, nextVal)) {
+                    if (move != lastMove) {
+                        return move;
+                    } else {
+                        ok = true;
+                    }
+                }
+            }
+            if (ok) {
+                return static_cast<semanticMoves>(lastMove);
+            }
+        }
+
+
+        return fromPosition(minX, minY);
+    } else {
+        perm = getPerm();
+
+        for (int i = 0; i <= 3; i++) {
+            int uNext = curRow + dX[perm[i]];
+            int vNext = curCol + dY[perm[i]];
+
+            if (!isStableCell(uNext, vNext)) continue;
+
+            semanticMoves move = static_cast<semanticMoves>(perm[i]);
+            if (isThisMoveValid(move, nextVal)) {
+                int distance = abs(uNext - currentDestination.x) + abs(vNext - currentDestination.y);
+                if (distance == minDistance) {
+                    if (move != lastMove) {
+                        return move;
+                    }
+                }
+            }
+        }
+        return fromPosition(minX, minY);
+    }
+
+}
+
+
+semanticMoves otherStrategyMove() {
+//    DEBUG(uEx);
+//    DEBUG(vEx);
+
     q = queue< pair<int, int> >();
     memset(visited, false, sizeof(visited));
-
+    //    memset(trace, 0, sizeof(trace));
+    memset(f, 0, sizeof(f));
 
     q.push(make_pair(curRow, curCol));
     visited[curRow][curCol] = true;
-
-    bool haveSecondaryPos = false;
-    Position secondaryPos;
+    f[curRow][curCol] = 0;
 
     bool havePrimaryPos = false;
     Position primaryPos;
-    
+    int primDis = 100000;
+
+    bool haveSecondaryPos = false;
+    Position secondaryPos;
+    int sedDis = 100000;
+
+    for (int i = 0; i < exDestination.size(); i++) {
+        visited[exDestination[i].x][exDestination[i].y] = true;
+    }
+
     while (!q.empty()) {
         int u = q.front().first;
         int v = q.front().second;
@@ -238,25 +422,28 @@ semanticMoves safeStrategyFromStable() {
             semanticMoves move = static_cast<semanticMoves>(i);
 
             if (visited[uNext][vNext]) continue;
-            if (distanceToAnotherBot(uNext, vNext) < 4 && lastMove != -1) continue;
+            //            if (uNext == uEx && vNext == vEx) continue;
 
             if (isStableCell(uNext, vNext)) {
                 visited[uNext][vNext] = true;
                 q.push(make_pair(uNext, vNext));    
-                trace[uNext][vNext] = {u, v};
+                f[uNext][vNext] = f[u][v] + 1;
             } else {
-                if (isInsideBoard(uNext, vNext)) {         
-                    if (numAdjStableCell(uNext, vNext) == 2) {
+                if (isInsideBoard(uNext, vNext)) {
+                    if (numAdjStableCell(uNext, vNext) >= 2) {
                         // uNext, vNext is the expected position.
                         primaryPos = {uNext, vNext};
                         havePrimaryPos = true;
-                        trace[uNext][vNext] = {u, v};
+                        f[uNext][vNext] = f[u][v] + 1;
+                        primDis = f[uNext][vNext];
                         break;
                     } else {
                         if (!haveSecondaryPos) {
                             haveSecondaryPos = true;
                             secondaryPos = {uNext, vNext};
-                            trace[uNext][vNext] = {u, v};
+                            f[uNext][vNext] = f[u][v] + 1;
+                            sedDis = f[uNext][vNext];
+
                         }
                     }
                 }
@@ -265,44 +452,137 @@ semanticMoves safeStrategyFromStable() {
         if (havePrimaryPos) break;
     }
 
-    if (!havePrimaryPos) {
-        havePrimaryPos = true;
-        primaryPos = secondaryPos;
-    }
-
-    int u = primaryPos.x;
-    int v = primaryPos.y;
-
-    while (true) {
-        int uu = trace[u][v].x;
-        int vv = trace[u][v].y;
-
-        if (uu == curRow && vv == curCol) {
-            return fromPosition(u, v);
-        }
-
-        u = uu;
-        v = vv;
-    }
-
     int nextVal;
-    //random move
-    for (int i = 0; i <= 3; i++) {
-//        int r = rand() % 3;     
-        int uu = curRow + dX[i];
-        int vv = curCol + dY[i];
-        semanticMoves move = static_cast<semanticMoves>(i);
+    if (havePrimaryPos || haveSecondaryPos) {
+        if (!havePrimaryPos) {
+            havePrimaryPos = true;
+            primaryPos = secondaryPos;
 
-        if (isThisMoveValid(move, nextVal)) {
-            if (isStableCell(uu, vv)) {
-                return move;
-
+        } else {
+            if (haveSecondaryPos) {
+                if (sedDis + 4 < primDis) {
+                    havePrimaryPos = true;
+                    primaryPos = secondaryPos;
+                }
             }
         }
+
+        currentDestination = primaryPos;
+        //        DEBUG(currentDestination.x);
+        //        DEBUG(currentDestination.y);
+
+        return greedyMove();
     }
+
+    return dumbStableMove();
+
 }
 
+
+
+
+
+
+semanticMoves safeStrategyFromStable() {
+    // reset q and visited
+    q = queue< pair<int, int> >();
+    memset(visited, false, sizeof(visited));
+    memset(trace, 0, sizeof(trace));
+    memset(f, 0, sizeof(f));
+
+
+    q.push(make_pair(curRow, curCol));
+    visited[curRow][curCol] = true;
+    f[curRow][curCol] = 0;
+
+    bool haveSecondaryPos = false;
+    Position secondaryPos;
+    int sedDis = 100000;
+
+    bool havePrimaryPos = false;
+    Position primaryPos;
+    int primDis = 100000;
+
+    while (!q.empty()) {
+        int u = q.front().first;
+        int v = q.front().second;
+        q.pop();
+
+        for (int i = 0; i <= 3; i++) {
+            int uNext = u + dX[i];
+            int vNext = v + dY[i];
+
+            // NOTE
+            semanticMoves move = static_cast<semanticMoves>(i);
+
+            if (visited[uNext][vNext]) continue;
+            //            if (distanceToAnotherBot(uNext, vNext) < 4 && lastMove != -1) continue;
+
+            if (isStableCell(uNext, vNext)) {
+                visited[uNext][vNext] = true;
+                q.push(make_pair(uNext, vNext));    
+                trace[uNext][vNext] = {u, v};
+                f[uNext][vNext] = f[u][v] + 1;
+            } else {
+                if (isInsideBoard(uNext, vNext)) {         
+
+                    if (numAdjStableCell(uNext, vNext) >= 2) {
+                        // uNext, vNext is the expected position.
+                        primaryPos = {uNext, vNext};
+                        havePrimaryPos = true;
+                        trace[uNext][vNext] = {u, v};
+                        f[uNext][vNext] = f[u][v] + 1;
+                        primDis = f[uNext][vNext];
+                        break;
+                    } else {
+                        if (!haveSecondaryPos) {
+                            haveSecondaryPos = true;
+                            secondaryPos = {uNext, vNext};
+                            trace[uNext][vNext] = {u, v};
+                            f[uNext][vNext] = f[u][v] + 1;
+                            sedDis = f[uNext][vNext];
+                        }
+                    }
+                }
+            }
+        }
+        if (havePrimaryPos) break;
+    }
+
+//    cout << "ahlasfhdo" << endl;
+    
+
+    if (havePrimaryPos || haveSecondaryPos) {
+        if (!havePrimaryPos) {
+            havePrimaryPos = true;
+            primaryPos = secondaryPos;
+        } else {
+            if (haveSecondaryPos) {
+                if (sedDis + 4 < primDis) {
+                    havePrimaryPos = true;
+                    primaryPos = secondaryPos;
+                }
+            }
+        }
+
+        currentDestination = primaryPos;
+//        DEBUG(currentDestination.x);
+//        DEBUG(currentDestination.y);
+        
+        return greedyMove();
+
+    }
+
+    
+    return dumbStableMove();
+}
+
+
+
 bool isDangerous() {
+
+    
+
     for (int i = 0; i < nRows; i++) {
         for (int j = 0; j < nColumns; j++) {
             if (board[i][j] == myUnstableNumber) {
@@ -310,10 +590,10 @@ bool isDangerous() {
                     int u = currentBotPosition[k].x;
                     int v = currentBotPosition[k].y;
 
-//                    DEBUG(u);
-//                    DEBUG(v);
-//                    NOTE
-                    if (abs(u - i) + abs(v - j) <= 3) return true;
+                    if (curRow == i && curCol == j) {
+                        if (abs(u - i) + abs(v - j) <= 4) return true;
+                    } else
+                    if (abs(u - i) + abs(v - j) <= 2) return true;
                 }
             }
         }
@@ -322,7 +602,24 @@ bool isDangerous() {
     return false;
 }
 
+int distanceToStable(int u, int v) {
+    int res = 10000000;
+    for (int i = 0; i < nRows; i++) {
+        for (int j = 0; j < nColumns; j++) {
+            if (isStableCell(i, j)) {
+                if (abs(u - i) + abs(v - j) < res) {
+                    res = abs(u - i) + abs(v - j);
+                }
+            }
+        }
+    }
+
+    return res;
+}
+
 semanticMoves safeStrategyFromUnstable() {
+    currentDestination = {-1, -1};
+    
     int nextVal;
 
     // di vao o an toan (den duoc stable trong 1 nuoc)
@@ -351,9 +648,6 @@ semanticMoves safeStrategyFromUnstable() {
         }
     }
 
-
-
-
     for (int i = 0; i <= 3; i++) {
         int uu = curRow + dX[i];
         int vv = curCol + dY[i];
@@ -361,10 +655,36 @@ semanticMoves safeStrategyFromUnstable() {
 
         if (isThisMoveValid(move, nextVal)) {
             if (isStableCell(uu, vv)) {
-               return move;
+                currentDestination = {-1, -1};
+                exDestination.clear();
+
+                return move;
             }
         }
     }
+
+    int minDistance = 10000000;
+    semanticMoves minMove;
+    // nguy hiem + ko co stable de di
+
+    for (int i = 0; i <= 3; i++) {
+        int uNext = curRow + dX[i];
+        int vNext = curCol + dY[i];
+        semanticMoves move = static_cast<semanticMoves>(i);
+        
+        if (!isThisMoveValid(move, nextVal)) continue;
+
+        int d = distanceToStable(uNext, vNext);
+        if (d < minDistance) {
+            minDistance = d;
+            minMove = move;
+        }
+    }
+
+    if (minDistance != 10000000) {
+        return minMove;
+    }
+
 
     // TODO: Co truong hop nao ma minh dang dung o unstable, nhung khong co stable de di?
     // neu khong co stable de di -> tim stable gan nhat
@@ -405,15 +725,21 @@ semanticMoves safeStrategyMove() {
         int nextCol = curCol + dY[i];
         semanticMoves move = static_cast<semanticMoves>(i);
         
+
+
         // (1)
         if (isThisMoveValid(move, nextVal)) {
             if (isPosOfAnotherBot(nextRow, nextCol) && board[nextRow][nextCol] % 2 == 0) {   
+
                 return move;
             }    
         }      
     }
 
     if (board[curRow][curCol] == myStableNumber) {
+        if (currentDestination.x != -1) {
+            return greedyMove();
+        }
         return safeStrategyFromStable();
     } else {
         return safeStrategyFromUnstable();
@@ -446,12 +772,12 @@ void makeBestMove(){
 
 
 int main() {
-
+    srand(time(NULL));
 //    freopen("bug.txt", "r", stdin);
     int tempRow, tempCol;
     char temp;
 
-    initBoard();
+//    initBoard();
     // Read initial inputs
     cin >> nBots;
     cin >> myBotId;
@@ -491,7 +817,12 @@ int main() {
                 //board[tempRow][tempCol] = 10 * i; //TODO: Mapping function
             }
             // printBoard();
+
+//            lastMove = DOWN;
+//            currentDestination = {11, 13};
+//            exDestination.push_back({8, 13});
             makeBestMove();
+//            DEBUG(exDestination.size());
         }
     }
 }
