@@ -63,11 +63,13 @@ semanticMoves greedyMove();
 int f[nRows + 5][nColumns + 5];
 
 // variables here
-int sample[4][4] = {{0, 1, 2, 3}, {1, 2, 0, 3}, {2, 1, 0, 3}, {3, 2, 0, 1}};
+int sample[12][4] = {{0, 1, 2, 3}, {1, 2, 0, 3}, {2, 1, 0, 3}, {3, 2, 0, 1}, {0, 1, 3, 2},
+                    {0, 2, 1, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}, {0, 3, 2, 1},
+                    {1, 2, 3, 0}, {1, 3, 0, 2}, {3, 0, 1, 2}};
 
 int *getPerm() {
 	srand (time(NULL));
-	int r = rand() % 4;
+	int r = rand() % 12;
 	int *perm = sample[r];
 
 	return perm;
