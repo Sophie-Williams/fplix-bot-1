@@ -1,5 +1,5 @@
 
-// v1.2.0
+// v1.2.7
 
 #include <map>
 #include <set>
@@ -88,7 +88,6 @@ void printBoard(){
     for (int i = 0; i < nRows; i++){
         for (int j = 0; j < nColumns; j++) {
             cout << board[i][j];
-            //            cout << board[i][nColumns - 1] << endl;
         }
         cout << endl;
     }
@@ -231,13 +230,13 @@ int distanceToAnotherBot(int x, int y) {
             res = abs(u - x) + abs(v - y);
     }
 
-//    cout << res << endl;
     return res;
 }
 
 semanticMoves dumbStableMove() {
     int nextVal;
-    //random move
+    // CASE: have a stable cell to arrive.
+    // --> random move to that stable cell
     for (int i = 0; i <= 3; i++) {
         int uu = curRow + dX[i];
         int vv = curCol + dY[i];
@@ -264,7 +263,6 @@ semanticMoves dumbStableMove() {
 }
 
 semanticMoves moveBeforeGoOutTo(int u, int v) {
-// cout << "den day" << endl;
 
     for (int i = 1; i <= nBots - 1; i++) {
         int xBot = currentBotPosition[i].x;
@@ -325,15 +323,9 @@ semanticMoves greedyMove() {
     int cnt = 0;
     if (minDistance < (abs(curRow - currentDestination.x) + abs(curCol - currentDestination.y))) {
 
-//        cout << "vo day" << endl;
-
         if (minX == currentDestination.x && minY == currentDestination.y) {
             return moveBeforeGoOutTo(minX, minY);
         }
-        //    currentDestination = {-1, -1};
-
-//        std::random_shuffle(perm, perm + 4);
-
 
         perm = getPerm();
 
@@ -387,8 +379,6 @@ semanticMoves greedyMove() {
 
 
 semanticMoves otherStrategyMove() {
-//    DEBUG(uEx);
-//    DEBUG(vEx);
 
     q = queue< pair<int, int> >();
     memset(visited, false, sizeof(visited));
@@ -481,10 +471,6 @@ semanticMoves otherStrategyMove() {
 }
 
 
-
-
-
-
 semanticMoves safeStrategyFromStable() {
     // reset q and visited
     q = queue< pair<int, int> >();
@@ -518,7 +504,6 @@ semanticMoves safeStrategyFromStable() {
             semanticMoves move = static_cast<semanticMoves>(i);
 
             if (visited[uNext][vNext]) continue;
-            //            if (distanceToAnotherBot(uNext, vNext) < 4 && lastMove != -1) continue;
 
             if (isStableCell(uNext, vNext)) {
                 visited[uNext][vNext] = true;
@@ -551,8 +536,6 @@ semanticMoves safeStrategyFromStable() {
         if (havePrimaryPos) break;
     }
 
-//    cout << "ahlasfhdo" << endl;
-    
 
     if (havePrimaryPos || haveSecondaryPos) {
         if (!havePrimaryPos) {
@@ -574,16 +557,12 @@ semanticMoves safeStrategyFromStable() {
         return greedyMove();
 
     }
-
-    
     return dumbStableMove();
 }
 
 
 
 bool isDangerous() {
-
-    
 
     for (int i = 0; i < nRows; i++) {
         for (int j = 0; j < nColumns; j++) {
@@ -615,7 +594,6 @@ int distanceToStable(int u, int v) {
             }
         }
     }
-
     return res;
 }
 
@@ -624,11 +602,9 @@ semanticMoves safeStrategyFromUnstable() {
     
     int nextVal;
 
-    // di vao o an toan (den duoc stable trong 1 nuoc)
-    //
- 
-//    cout << isDangerous() << endl;
-//    cout << myUnstableNumber << endl;
+    // CASE: Isn't dangerous: 
+    // -> move to empty cell which is beside the stable area.
+    //      
 
     if (!isDangerous()) {
         for (int i = 0; i <= 3; i++) {
@@ -650,6 +626,8 @@ semanticMoves safeStrategyFromUnstable() {
         }
     }
 
+
+    // CASE: Is dangerous && have a stable cell to arrive.
     for (int i = 0; i <= 3; i++) {
         int uu = curRow + dX[i];
         int vv = curCol + dY[i];
@@ -664,10 +642,11 @@ semanticMoves safeStrategyFromUnstable() {
             }
         }
     }
+    
 
+    // CASE: Is dangerous && have no stable cell to arrive.
     int minDistance = 10000000;
     semanticMoves minMove;
-    // nguy hiem + ko co stable de di
 
     for (int i = 0; i <= 3; i++) {
         int uNext = curRow + dX[i];
@@ -688,10 +667,9 @@ semanticMoves safeStrategyFromUnstable() {
     }
 
 
-    // TODO: Co truong hop nao ma minh dang dung o unstable, nhung khong co stable de di?
-    // neu khong co stable de di -> tim stable gan nhat
     
-    //random move
+    // CASE: otherwise.
+    // --> random move
     
     for (int i = 0; i <= 3; i++) {
         int uu = curRow + dX[i];
