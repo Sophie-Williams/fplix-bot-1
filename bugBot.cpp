@@ -29,6 +29,7 @@ struct Position {
     int x, y;
 };
 
+const int ThresHold = 3;
 const int nRows = 20;
 const int nColumns = 30;
 
@@ -452,7 +453,7 @@ semanticMoves otherStrategyMove() {
 
         } else {
             if (haveSecondaryPos) {
-                if (sedDis + 4 < primDis) {
+                if (sedDis + ThresHold < primDis) {
                     havePrimaryPos = true;
                     primaryPos = secondaryPos;
                 }
@@ -543,7 +544,7 @@ semanticMoves safeStrategyFromStable() {
             primaryPos = secondaryPos;
         } else {
             if (haveSecondaryPos) {
-                if (sedDis + 4 < primDis) {
+                if (sedDis + ThresHold < primDis) {
                     havePrimaryPos = true;
                     primaryPos = secondaryPos;
                 }
@@ -710,9 +711,11 @@ semanticMoves safeStrategyMove() {
         // (1)
         if (isThisMoveValid(move, nextVal)) {
             if (isPosOfAnotherBot(nextRow, nextCol) && board[nextRow][nextCol] % 2 == 0) {   
-
                 return move;
             }    
+            if (board[nextRow][nextCol] % 2 == 0 && board[nextRow][nextCol] > 0 && board[nextCol][nextCol] != myUnstableNumber) {
+                return move;
+            }
         }      
     }
 
