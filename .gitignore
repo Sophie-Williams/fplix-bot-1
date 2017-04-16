@@ -2,3 +2,4 @@
 bugBot
 bugBot.dSYM
 .bugBot.cpp.swp
+*.txt
