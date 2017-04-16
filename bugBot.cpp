@@ -31,7 +31,7 @@ struct Position {
 
 const int oo = 100000;
 const int ThresHold = 3;
-const int HomeThresHold = 3;
+const int HomeThresHold = 4;
 
 const int nRows = 20;
 const int nColumns = 30;
@@ -55,6 +55,7 @@ queue< pair<int, int> > q;
 bool visited[nRows + 5][nColumns + 5];
 
 Position currentDestination = {-1, -1};
+Position startPostition = {-1, -1};
 vector<Position> exDestination;
 
 int *perm;
@@ -233,7 +234,7 @@ int distanceToAnotherBot(int x, int y) {
         int u = currentBotPosition[i].x;
         int v = currentBotPosition[i].y;
 
-        if (abs(u - x) + abs(v - y) > res) 
+        if (abs(u - x) + abs(v - y) > res)
             res = abs(u - x) + abs(v - y);
     }
 
@@ -265,7 +266,7 @@ semanticMoves dumbStableMove() {
             return move;
         }
     }
-    
+
     return static_cast<semanticMoves>(0);
 }
 
@@ -277,18 +278,19 @@ semanticMoves moveBeforeGoOutTo(int u, int v) {
 
         if (abs(xBot - curRow) + abs(yBot - curCol) <= 4) {
             exDestination.push_back({u, v});
-                       
+
             return otherStrategyMove();
         }
     }
-    
+
     exDestination.clear();
     currentDestination = {-1, -1};
 //    isDesToHome = false;
 //    lastMaxToHome = 0;
     cntMaxMove = 0;
+    startPostition = {u, v};
     return fromPosition(u, v);
-    
+
 }
 
 semanticMoves greedyMove() {
@@ -324,8 +326,8 @@ semanticMoves greedyMove() {
             }
         }
     }
-//    DEBUG(currentDestination.x);   
-//    DEBUG(currentDestination.y); 
+//    DEBUG(currentDestination.x);
+//    DEBUG(currentDestination.y);
 //    DEBUG(minX);
 //    DEBUG(minY);
 //    DEBUG(minDistance);
@@ -428,7 +430,7 @@ semanticMoves otherStrategyMove() {
 
             if (isStableCell(uNext, vNext)) {
                 visited[uNext][vNext] = true;
-                q.push(make_pair(uNext, vNext));    
+                q.push(make_pair(uNext, vNext));
                 f[uNext][vNext] = f[u][v] + 1;
             } else {
                 if (isInsideBoard(uNext, vNext)) {
@@ -517,11 +519,11 @@ semanticMoves safeStrategyFromStable() {
 
             if (isStableCell(uNext, vNext)) {
                 visited[uNext][vNext] = true;
-                q.push(make_pair(uNext, vNext));    
+                q.push(make_pair(uNext, vNext));
                 trace[uNext][vNext] = {u, v};
                 f[uNext][vNext] = f[u][v] + 1;
             } else {
-                if (isInsideBoard(uNext, vNext)) {         
+                if (isInsideBoard(uNext, vNext)) {
 
                     if (numAdjStableCell(uNext, vNext) >= 2) {
                         // uNext, vNext is the expected position.
@@ -563,7 +565,7 @@ semanticMoves safeStrategyFromStable() {
         currentDestination = primaryPos;
 //        DEBUG(currentDestination.x);
 //        DEBUG(currentDestination.y);
-        
+
         return greedyMove();
 
     }
@@ -589,7 +591,7 @@ bool isDangerous() {
             }
         }
     }
-    
+
     return false;
 }
 
@@ -622,7 +624,7 @@ int emptyCellsDistance(Position start) {
     visited[start.x][start.y] = true;
     f[start.x][start.y] = 0;
 
-    visited[start.x - dX[lastMove]][start.y - dY[lastMove]] = true;
+    visited[curRow][curCol] = true;
 
     int res = oo;
 
@@ -642,11 +644,11 @@ int emptyCellsDistance(Position start) {
 
             if (visited[uNext][vNext]) continue;
             if (!isInsideBoard(uNext, vNext)) continue;
-            if (distanceToStable(uNext, vNext) >= distanceToAnotherBot(uNext, vNext) + HomeThresHold) continue;
+            if (distanceToStable(uNext, vNext) + f[u][v] >= distanceToAnotherBot(uNext, vNext) + HomeThresHold) continue;
 
             if (board[uNext][vNext] != myUnstableNumber) {
                 visited[uNext][vNext] = true;
-                q.push(make_pair(uNext, vNext));    
+                q.push(make_pair(uNext, vNext));
                 f[uNext][vNext] = f[u][v] + 1;
 
                 if (isStableCell(uNext, vNext)) {
@@ -659,6 +661,9 @@ int emptyCellsDistance(Position start) {
             }
         }
     }
+    // cout << start.x << " " << start.y << endl;
+    // DEBUG(res);
+    // cout << endl;
     return res;
 }
 
@@ -672,19 +677,19 @@ int distanceFromOtherBotToUnstable(int xNext, int yNext) {
         for (int i = 0; i < nRows; i++) {
             for (int j = 0; j < nColumns; j++) {
                 if (board[i][j] == myUnstableNumber) {
-                    
-                    if (abs(u - i) + abs(v - j) < res) 
+
+                    if (abs(u - i) + abs(v - j) < res)
                         res = abs(u - i) + abs(v - j);
                 }
             }
         }
-        
-        if (abs(xNext - u) + abs(yNext - v) < res) 
+
+        if (abs(xNext - u) + abs(yNext - v) < res)
             res = abs(xNext - u) + abs(yNext - v);
 
-        if (abs(curRow - u) + abs(curCol - v) < res) 
+        if (abs(curRow - u) + abs(curCol - v) < res)
             res = abs(curRow - u) + abs(curCol - v);
-    
+
     }
 
     return res;
@@ -695,6 +700,10 @@ bool isSafe(int xNext, int yNext, int& disToHome) {
     int wayToHell = distanceFromOtherBotToUnstable(xNext, yNext);
 
     disToHome = wayToHome;
+    // cout << xNext << " " << yNext << endl;
+    // DEBUG(wayToHome);
+    // DEBUG(wayToHell);
+    // cout << endl;
     return wayToHome + HomeThresHold < wayToHell;
 }
 
@@ -704,6 +713,7 @@ semanticMoves safeStrategyFromUnstable() {
     int nextVal;
     int disToHome;
     int maxDisToHome = -1;
+    int maxDisToStart = -1;
     semanticMoves maxMove;
 
     for (int i = 0; i < 4; i++) {
@@ -715,9 +725,11 @@ semanticMoves safeStrategyFromUnstable() {
         if (isThisMoveValid(move, nextVal)) {
 
             if (isSafe(xNext, yNext, disToHome)) {
-                if (disToHome > maxDisToHome) {
+                int disToStart = matDis({xNext, yNext}, startPostition);
+                if (disToStart > maxDisToStart) {
                     maxMove = move;
-                    maxDisToHome = disToHome;
+                    // maxDisToHome = disToHome;
+                    maxDisToStart = disToStart;
 //                    if (lastMaxToHome > maxDisToHome) {
 //                        isDesToHome = true;
 //                        break;
@@ -729,7 +741,7 @@ semanticMoves safeStrategyFromUnstable() {
         }
     }
 
-    if (maxDisToHome == -1 || cntMaxMove >= 19) {
+    if (maxDisToStart == -1) {
         semanticMoves minMove;
         int minDisToHome = oo;
 
@@ -741,30 +753,33 @@ semanticMoves safeStrategyFromUnstable() {
 
             if (isThisMoveValid(move, nextVal)) {
                 int wayToHome = emptyCellsDistance({xNext, yNext});
+                // cout << xNext << " " << yNext << endl;
+                // DEBUG(wayToHome);
+                // cout << endl;
                 if (wayToHome < minDisToHome) {
                     minDisToHome = wayToHome;
                     minMove = move;
 
                 }
-            } 
+            }
         }
-//        DEBUG(minDisToHome);
-//        cout << "min move" << endl;
-//        DEBUG(minMove);
+       // DEBUG(minDisToHome);
+       // cout << "min move" << endl;
+       // DEBUG(minMove);
         return minMove;
     } else {
-//        cout << "max move" << endl;
+       // cout << "max move" << endl;
         cntMaxMove ++;
         return maxMove;
     }
 
 }
 
-// safe stratery move: 
+// safe stratery move:
 // if current pos is adjacent to another bot -> go to that bot's pos             (1)
 //
 // if current pos is stable: find an empty cell that beside at lease 2 stable cell
-// if current pos is unstable: 
+// if current pos is unstable:
 //      + if we find a adj cell that from it we can go to stable area in 1 move -> move to it
 //      + else: go to the adj stable cell.
 //
@@ -783,13 +798,13 @@ semanticMoves safeStrategyMove() {
         semanticMoves move = static_cast<semanticMoves>(i);
         // (1)
         if (isThisMoveValid(move, nextVal)) {
-            if (isPosOfAnotherBot(nextRow, nextCol) && board[nextRow][nextCol] % 2 == 0) {   
+            if (isPosOfAnotherBot(nextRow, nextCol) && board[nextRow][nextCol] % 2 == 0) {
                 return move;
-            }    
+            }
             if (board[nextRow][nextCol] % 2 == 0 && board[nextRow][nextCol] > 0 && board[nextCol][nextCol] != myUnstableNumber) {
                 return move;
             }
-        }      
+        }
     }
 
     if (board[curRow][curCol] == myStableNumber) {
@@ -832,7 +847,7 @@ int main() {
     isDesToHome = false;
 
     srand(time(NULL));
-//        freopen("bug.txt", "r", stdin);
+       // freopen("bug.txt", "r", stdin);
     int tempRow, tempCol;
     char temp;
 
@@ -859,7 +874,7 @@ int main() {
                     board[i][j] = temp - 48;
                 }
             }
-            
+
 //            printBoard();
 
             int otherBotCounts = 0;
@@ -877,7 +892,7 @@ int main() {
             }
             // printBoard();
 
-//            lastMove = RIGHT;
+           // lastMove = RIGHT;
 //            currentDestination = {11, 13};
 //            exDestination.push_back({8, 13});
             makeBestMove();
