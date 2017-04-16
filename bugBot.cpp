@@ -29,12 +29,15 @@ struct Position {
     int x, y;
 };
 
+const int oo = 100000;
+const int ThresHold = 3;
+const int HomeThresHold = 3;
+
 const int nRows = 20;
 const int nColumns = 30;
 
 const int dX[4] = {0, -1, 0, 1};
 const int dY[4] = {1, 0, -1, 0};
-
 
 enum semanticMoves { RIGHT, UP, LEFT, DOWN };
 
@@ -61,6 +64,10 @@ semanticMoves otherStrategyMove();
 semanticMoves greedyMove();
 
 int f[nRows + 5][nColumns + 5];
+
+int lastMaxToHome;
+bool isDesToHome;
+int cntMaxMove = 0;
 
 // variables here
 int sample[12][4] = {{0, 1, 2, 3}, {1, 2, 0, 3}, {2, 1, 0, 3}, {3, 2, 0, 1}, {0, 1, 3, 2},
@@ -277,6 +284,9 @@ semanticMoves moveBeforeGoOutTo(int u, int v) {
     
     exDestination.clear();
     currentDestination = {-1, -1};
+//    isDesToHome = false;
+//    lastMaxToHome = 0;
+    cntMaxMove = 0;
     return fromPosition(u, v);
     
 }
@@ -452,7 +462,7 @@ semanticMoves otherStrategyMove() {
 
         } else {
             if (haveSecondaryPos) {
-                if (sedDis + 4 < primDis) {
+                if (sedDis + ThresHold < primDis) {
                     havePrimaryPos = true;
                     primaryPos = secondaryPos;
                 }
@@ -543,7 +553,7 @@ semanticMoves safeStrategyFromStable() {
             primaryPos = secondaryPos;
         } else {
             if (haveSecondaryPos) {
-                if (sedDis + 4 < primDis) {
+                if (sedDis + ThresHold < primDis) {
                     havePrimaryPos = true;
                     primaryPos = secondaryPos;
                 }
@@ -597,88 +607,155 @@ int distanceToStable(int u, int v) {
     return res;
 }
 
-semanticMoves safeStrategyFromUnstable() {
-    currentDestination = {-1, -1};
-    
-    int nextVal;
+int matDis(Position p1, Position p2) {
+    return (abs(p1.x - p2.x) + abs(p1.y - p2.y));
+}
 
-    // CASE: Isn't dangerous: 
-    // -> move to empty cell which is beside the stable area.
-    //      
 
-    if (!isDangerous()) {
+int emptyCellsDistance(Position start) {
+
+    q = queue< pair<int, int> >();
+    memset(visited, false, sizeof(visited));
+    memset(f, 0, sizeof(f));
+
+    q.push(make_pair(start.x, start.y));
+    visited[start.x][start.y] = true;
+    f[start.x][start.y] = 0;
+
+    visited[start.x - dX[lastMove]][start.y - dY[lastMove]] = true;
+
+    int res = oo;
+
+    if (isStableCell(start.x, start.y)) return 0;
+
+    while (!q.empty()) {
+        int u = q.front().first;
+        int v = q.front().second;
+        q.pop();
+
         for (int i = 0; i <= 3; i++) {
-            int uu = curRow + dX[i];
-            int vv = curCol + dY[i];
+            int uNext = u + dX[i];
+            int vNext = v + dY[i];
+
+            // NOTE
             semanticMoves move = static_cast<semanticMoves>(i);
-            if (isThisMoveValid(move, nextVal)) {
-                if (!isStableCell(uu, vv)) {
-                    bool ok = false;
-                    for (int j = 0; j <= 3; j++) {
-                        if (uu + dX[j] != curRow || vv + dY[j] != curCol) {
-                            if (isStableCell(uu + dX[j], vv + dY[j])) {
-                                return move;
-                            }
-                        }       
+
+            if (visited[uNext][vNext]) continue;
+            if (!isInsideBoard(uNext, vNext)) continue;
+            if (distanceToStable(uNext, vNext) >= distanceToAnotherBot(uNext, vNext) + HomeThresHold) continue;
+
+            if (board[uNext][vNext] != myUnstableNumber) {
+                visited[uNext][vNext] = true;
+                q.push(make_pair(uNext, vNext));    
+                f[uNext][vNext] = f[u][v] + 1;
+
+                if (isStableCell(uNext, vNext)) {
+                    if (f[uNext][vNext] < res)  {
+                        res = f[uNext][vNext];
+
                     }
+
                 }
             }
         }
     }
+    return res;
+}
 
+int distanceFromOtherBotToUnstable(int xNext, int yNext) {
+    int res = oo;
 
-    // CASE: Is dangerous && have a stable cell to arrive.
-    for (int i = 0; i <= 3; i++) {
-        int uu = curRow + dX[i];
-        int vv = curCol + dY[i];
-        semanticMoves move = static_cast<semanticMoves>(i);
+    for (int k = 1; k <= nBots - 1; k++) {
+        int u = currentBotPosition[k].x;
+        int v = currentBotPosition[k].y;
 
-        if (isThisMoveValid(move, nextVal)) {
-            if (isStableCell(uu, vv)) {
-                currentDestination = {-1, -1};
-                exDestination.clear();
-
-                return move;
+        for (int i = 0; i < nRows; i++) {
+            for (int j = 0; j < nColumns; j++) {
+                if (board[i][j] == myUnstableNumber) {
+                    
+                    if (abs(u - i) + abs(v - j) < res) 
+                        res = abs(u - i) + abs(v - j);
+                }
             }
         }
-    }
-    
-
-    // CASE: Is dangerous && have no stable cell to arrive.
-    int minDistance = 10000000;
-    semanticMoves minMove;
-
-    for (int i = 0; i <= 3; i++) {
-        int uNext = curRow + dX[i];
-        int vNext = curCol + dY[i];
-        semanticMoves move = static_cast<semanticMoves>(i);
         
-        if (!isThisMoveValid(move, nextVal)) continue;
+        if (abs(xNext - u) + abs(yNext - v) < res) 
+            res = abs(xNext - u) + abs(yNext - v);
 
-        int d = distanceToStable(uNext, vNext);
-        if (d < minDistance) {
-            minDistance = d;
-            minMove = move;
-        }
+        if (abs(curRow - u) + abs(curCol - v) < res) 
+            res = abs(curRow - u) + abs(curCol - v);
+    
     }
 
-    if (minDistance != 10000000) {
-        return minMove;
-    }
+    return res;
+}
 
+bool isSafe(int xNext, int yNext, int& disToHome) {
+    int wayToHome = emptyCellsDistance({xNext, yNext});
+    int wayToHell = distanceFromOtherBotToUnstable(xNext, yNext);
 
-    
-    // CASE: otherwise.
-    // --> random move
-    
-    for (int i = 0; i <= 3; i++) {
-        int uu = curRow + dX[i];
-        int vv = curCol + dY[i];
+    disToHome = wayToHome;
+    return wayToHome + HomeThresHold < wayToHell;
+}
+
+semanticMoves safeStrategyFromUnstable() {
+    currentDestination = {-1, -1};
+
+    int nextVal;
+    int disToHome;
+    int maxDisToHome = -1;
+    semanticMoves maxMove;
+
+    for (int i = 0; i < 4; i++) {
+        int xNext = curRow + dX[i];
+        int yNext = curCol + dY[i];
+
         semanticMoves move = static_cast<semanticMoves>(i);
 
         if (isThisMoveValid(move, nextVal)) {
-            return move;
+
+            if (isSafe(xNext, yNext, disToHome)) {
+                if (disToHome > maxDisToHome) {
+                    maxMove = move;
+                    maxDisToHome = disToHome;
+//                    if (lastMaxToHome > maxDisToHome) {
+//                        isDesToHome = true;
+//                        break;
+//                    }
+//                    lastMaxToHome = maxDisToHome;
+                }
+            }
+
         }
+    }
+
+    if (maxDisToHome == -1 || cntMaxMove >= 19) {
+        semanticMoves minMove;
+        int minDisToHome = oo;
+
+        for (int i = 0; i < 4; i++) {
+            int xNext = curRow + dX[i];
+            int yNext = curCol + dY[i];
+
+            semanticMoves move = static_cast<semanticMoves>(i);
+
+            if (isThisMoveValid(move, nextVal)) {
+                int wayToHome = emptyCellsDistance({xNext, yNext});
+                if (wayToHome < minDisToHome) {
+                    minDisToHome = wayToHome;
+                    minMove = move;
+
+                }
+            } 
+        }
+//        DEBUG(minDisToHome);
+//        cout << "min move" << endl;
+//        DEBUG(minMove);
+        return minMove;
+    } else {
+//        cout << "max move" << endl;
+        cntMaxMove ++;
+        return maxMove;
     }
 
 }
@@ -704,15 +781,14 @@ semanticMoves safeStrategyMove() {
         int nextRow = curRow + dX[i];
         int nextCol = curCol + dY[i];
         semanticMoves move = static_cast<semanticMoves>(i);
-        
-
-
         // (1)
         if (isThisMoveValid(move, nextVal)) {
             if (isPosOfAnotherBot(nextRow, nextCol) && board[nextRow][nextCol] % 2 == 0) {   
-
                 return move;
             }    
+            if (board[nextRow][nextCol] % 2 == 0 && board[nextRow][nextCol] > 0 && board[nextCol][nextCol] != myUnstableNumber) {
+                return move;
+            }
         }      
     }
 
@@ -742,8 +818,8 @@ void makeBestMove(){
     // You want to try a new strategy?
     // Please create a method with descriptive name and call it like this
     // realMove = noNameMove();
-//    realMove = defensiveMove();
-    
+    //    realMove = defensiveMove();
+
     realMove = safeStrategyMove();
 
     lastMove = realMove;
@@ -752,12 +828,15 @@ void makeBestMove(){
 
 
 int main() {
+    lastMaxToHome = -1;
+    isDesToHome = false;
+
     srand(time(NULL));
-//    freopen("bug.txt", "r", stdin);
+//        freopen("bug.txt", "r", stdin);
     int tempRow, tempCol;
     char temp;
 
-//    initBoard();
+    //    initBoard();
     // Read initial inputs
     cin >> nBots;
     cin >> myBotId;
@@ -798,7 +877,7 @@ int main() {
             }
             // printBoard();
 
-//            lastMove = DOWN;
+//            lastMove = RIGHT;
 //            currentDestination = {11, 13};
 //            exDestination.push_back({8, 13});
             makeBestMove();
