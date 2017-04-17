@@ -647,7 +647,7 @@ int emptyCellsDistance(Position start, Position traceToHome[nRows + 5][nColumns 
 
             if (visited[uNext][vNext]) continue;
             if (!isInsideBoard(uNext, vNext)) continue;
-            if (distanceToStable(uNext, vNext) + f[u][v] >= distanceToAnotherBot(uNext, vNext) + HomeThresHold) continue;
+            if (distanceToStable(uNext, vNext) + f[u][v] >= distanceToAnotherBot(uNext, vNext)) continue;
 
             if (board[uNext][vNext] != myUnstableNumber) {
                 visited[uNext][vNext] = true;
