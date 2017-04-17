@@ -64,6 +64,13 @@ semanticMoves moveBeforeGoOutTo(int u, int v);
 semanticMoves otherStrategyMove();
 semanticMoves greedyMove();
 
+
+semanticMoves attack();
+semanticMoves runStrategyFromStable();
+semanticMoves stableNavigate();
+Position findDest(int x, int y, int& value);
+
+
 int f[nRows + 5][nColumns + 5];
 
 int lastMaxToHome;
@@ -901,11 +908,174 @@ void makeBestMove(){
     // realMove = noNameMove();
     //    realMove = defensiveMove();
 
-    realMove = safeStrategyMove();
-
+//    realMove = safeStrategyMove();
+    
+    realMove = attack();
     lastMove = realMove;
     printMove(realMove);
 }
+
+Position findDest(int x, int y, int& value) {
+    // reset q and visited
+    q = queue< pair<int, int> >();
+    memset(visited, false, sizeof(visited));
+    memset(f, 0, sizeof(f));
+
+    q.push(make_pair(x, y));
+    visited[x][y] = true;
+    f[x][y] = 0;
+
+    int res = -oo;
+    Position resPos; 
+
+    while (!q.empty()) {
+        int u = q.front().first;
+        int v = q.front().second;
+        q.pop();
+
+        for (int i = 0; i <= 3; i++) {
+            int uNext = u + dX[i];
+            int vNext = v + dY[i];
+
+            // NOTE
+            semanticMoves move = static_cast<semanticMoves>(i);
+
+            if (visited[uNext][vNext]) continue;
+
+            if (isStableCell(uNext, vNext)) {
+                visited[uNext][vNext] = true;
+                q.push(make_pair(uNext, vNext));
+                f[uNext][vNext] = f[u][v] + 1;
+            } else {
+                if (isInsideBoard(uNext, vNext)) {
+                    int disToOtherBot = distanceToAnotherBot(uNext, vNext);
+
+                    if (disToOtherBot - (f[u][v] + 1) > res) {
+                        res = disToOtherBot - (f[u][v] + 1);
+                        resPos = {uNext, vNext};
+                    }
+                    
+                }
+            }
+        }
+    }
+
+    value = res;
+    return resPos;
+}
+
+semanticMoves stableNavigate() {
+
+    int res = oo;
+    semanticMoves minMove;
+    int nextVal;
+
+    for (int i = 0; i < 4; i++) {
+        int uNext = curRow + dX[i];
+        int vNext = curCol + dY[i];
+
+        semanticMoves move = static_cast<semanticMoves>(i);
+            
+        if (isStableCell(uNext, vNext) && isThisMoveValid(move, nextVal)) {
+            int disToDest = matDis({uNext, vNext}, currentDestination);
+
+            if (disToDest < res) {
+                res = disToDest;
+                minMove = move;
+            }
+        }
+    }   
+
+    if (res != oo) {
+        int res2 = oo;
+        semanticMoves minMove2;
+
+        for (int i = 0; i < 4; i++) {
+            int uNext = curRow + dX[i];
+            int vNext = curCol + dY[i];
+
+            semanticMoves move = static_cast<semanticMoves>(i);
+
+            if (isThisMoveValid(move, nextVal)) {
+                int disToDest = matDis({uNext, vNext}, currentDestination);
+
+                if (disToDest < res2) {
+                    res2 = disToDest;
+                    minMove2 = move;
+                }
+            }
+        }  
+        return minMove2;
+    } else {
+        return minMove;
+    }
+
+}
+
+semanticMoves runStrategyFromStable() {
+
+    int nextVal;
+    int res = -oo;
+    Position resPos;
+
+
+    for (int i = 0; i < 4; i++) {
+        int uNext = curRow + dX[i];
+        int vNext = curCol + dY[i];
+        semanticMoves move = static_cast<semanticMoves>(i);
+
+        if (isStableCell(uNext, vNext) && isThisMoveValid(move, nextVal)) {
+            int value;
+            Position dest = findDest(uNext, vNext, value);
+
+            if (value > res) {
+                res = value;
+                resPos = dest;
+            }
+
+        }
+    }
+
+    currentDestination = resPos;
+
+    stableNavigate();
+
+}
+
+semanticMoves attack() {
+    int nextVal;
+    bool isFirstMove = false;
+
+    if (lastMove == -1)
+        isFirstMove = true;
+
+
+    for (int i = 0; i <= 3; i++) {
+        int nextRow = curRow + dX[i];
+        int nextCol = curCol + dY[i];
+        semanticMoves move = static_cast<semanticMoves>(i);
+        // (1)
+        if (isThisMoveValid(move, nextVal)) {
+            if (isPosOfAnotherBot(nextRow, nextCol) && board[nextRow][nextCol] % 2 == 0) {
+                return move;
+            }
+            if (board[nextRow][nextCol] % 2 == 0 && board[nextRow][nextCol] > 0 && board[nextCol][nextCol] != myUnstableNumber) {
+                return move;
+            }
+        }
+    }
+
+    if (board[curRow][curCol] == myStableNumber) {
+        if (currentDestination.x != -1) {
+            return stableNavigate();
+        }
+        return runStrategyFromStable();
+    } else {
+        return safeStrategyFromUnstable();
+    }
+
+}
+
 
 
 int main() {
