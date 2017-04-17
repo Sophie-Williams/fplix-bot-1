@@ -276,7 +276,7 @@ semanticMoves moveBeforeGoOutTo(int u, int v) {
         int xBot = currentBotPosition[i].x;
         int yBot = currentBotPosition[i].y;
 
-        if (abs(xBot - curRow) + abs(yBot - curCol) <= 4) {
+        if (abs(xBot - curRow) + abs(yBot - curCol) <= 5) {
             exDestination.push_back({u, v});
 
             return otherStrategyMove();
@@ -702,14 +702,14 @@ int distanceFromOtherBotToUnstable(int xNext, int yNext) {
 
 bool isSafe(int xNext, int yNext, int& disToHome, Position traceToHome[nRows + 5][nColumns +5], Position& desStable) {
     int wayToHome = emptyCellsDistance({xNext, yNext}, traceToHome, desStable);
-    int wayToHell = distanceFromOtherBotToUnstable(xNext, yNext);
+    int wayToHell = distanceFromOtherBotToUnstable(xNext, yNext) - 1; // -1 for next move
 
     disToHome = wayToHome;
     // cout << xNext << " " << yNext << endl;
     // DEBUG(wayToHome);
     // DEBUG(wayToHell);
     // cout << endl;
-    return wayToHome + HomeThresHold < wayToHell;
+    return wayToHome < wayToHell;
 }
 
 int calArea(Position pos, Position traceToHome[nRows + 5][nColumns +5], Position desStable) {
@@ -791,6 +791,7 @@ semanticMoves safeStrategyFromUnstable() {
         if (isThisMoveValid(move, nextVal)) {
 
             if (isSafe(xNext, yNext, disToHome, traceToHome, desStable)) {
+
                 int area = calArea({xNext, yNext}, traceToHome, desStable);
                 if (area > maxArea) {
                     maxMove = move;
@@ -958,7 +959,7 @@ int main() {
             }
             // printBoard();
 
-           // lastMove = DOWN;
+           // lastMove = UP;
 //            currentDestination = {11, 13};
 //            exDestination.push_back({8, 13});
             makeBestMove();
