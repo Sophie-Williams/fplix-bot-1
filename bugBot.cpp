@@ -276,7 +276,7 @@ semanticMoves moveBeforeGoOutTo(int u, int v) {
         int xBot = currentBotPosition[i].x;
         int yBot = currentBotPosition[i].y;
 
-        if (abs(xBot - curRow) + abs(yBot - curCol) <= 4) {
+        if (abs(xBot - curRow) + abs(yBot - curCol) <= 5) {
             exDestination.push_back({u, v});
 
             return otherStrategyMove();
