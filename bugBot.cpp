@@ -42,6 +42,7 @@ const int dY[4] = {1, 0, -1, 0};
 enum semanticMoves { RIGHT, UP, LEFT, DOWN };
 
 int board[nRows + 5][nColumns + 5];
+int stableScore[nRows + 5][nColumns + 5];
 int nBots, myBotId, myStableNumber, myUnstableNumber;
 int curRow, curCol;
 int lastMove;
@@ -655,7 +656,7 @@ int emptyCellsDistance(Position start, Position traceToHome[nRows + 5][nColumns 
                 f[uNext][vNext] = f[u][v] + 1;
                 traceToHome[uNext][vNext] = {u, v};
 
-                if (isStableCell(uNext, vNext)) {
+                if (isStableCell(uNext, vNext) && stableScore[uNext][vNext] > f[uNext][vNext]) {
                     if (f[uNext][vNext] < res)  {
                         res = f[uNext][vNext];
                         desStable = {uNext, vNext};
@@ -775,6 +776,94 @@ int calArea(Position pos, Position traceToHome[nRows + 5][nColumns +5], Position
     return area;
 }
 
+void adjustMyStable(Position enemyStable, Position traceToEnemyHome[nRows + 5][nColumns + 5], int distance) {
+    int newBoard[nRows + 5][nColumns + 5];
+    memset(newBoard, 0, sizeof(newBoard));
+    for (int i = 0; i < nRows; i++)
+        for (int j = 0; j < nColumns; j++)
+            if (board[i][j] != myStableNumber && board[i][j] != myUnstableNumber)
+                newBoard[i + 1][j + 1] = board[i][j];
+
+    Position temp = enemyStable;
+    Position enemyBot = currentBotPosition[1];
+    while (temp.x != enemyBot.x || temp.y != enemyBot.y) {
+        newBoard[temp.x + 1][temp.y + 1] = 1;
+        temp = traceToEnemyHome[temp.x][temp.y];
+    }
+
+    newBoard[enemyBot.x + 1][enemyBot.y + 1] = 1;
+    // BFS
+    q = queue< pair<int, int> >();
+
+    q.push(make_pair(0, 0));
+
+    while (!q.empty()) {
+        int u = q.front().first;
+        int v = q.front().second;
+        q.pop();
+
+        for (int i = 0; i <= 3; i++) {
+            int uNext = u + dX[i];
+            int vNext = v + dY[i];
+
+            if ((uNext < 0 || uNext >= nRows + 2 || vNext < 0 || vNext >= nColumns + 2)) continue;
+            if (newBoard[uNext][vNext] == 0) {
+                q.push(make_pair(uNext, vNext));
+                newBoard[uNext][vNext] = 1;
+            }
+        }
+    }
+
+    for (int i = 0; i < nRows; i++)
+        for (int j = 0; j < nColumns; j++)
+            if (board[i][j] == myStableNumber && newBoard[i + 1][j + 1] == 0 && stableScore[i][j] > distance) {
+                  stableScore[i][j] = distance;
+            }
+}
+
+void createStableScore() {
+    q = queue< pair<int, int> >();
+    bool visited[nRows + 5][nColumns + 5];
+    Position traceToEnemyHome[nRows + 5][nColumns + 5];
+    memset(visited, false, sizeof(visited));
+    memset(f, 0, sizeof(f));
+
+    Position enemy = currentBotPosition[1];
+
+    q.push(make_pair(enemy.x, enemy.y));
+    visited[enemy.x][enemy.y] = true;
+    f[enemy.x][enemy.y] = 0;
+
+    int res = oo;
+
+    while (!q.empty()) {
+        int u = q.front().first;
+        int v = q.front().second;
+        q.pop();
+
+        for (int i = 0; i <= 3; i++) {
+            int uNext = u + dX[i];
+            int vNext = v + dY[i];
+
+            if (visited[uNext][vNext]) continue;
+            if (!isInsideBoard(uNext, vNext)) continue;
+            if (board[uNext][vNext] == myUnstableNumber || board[uNext][vNext] % 2 == 1 || board[uNext][vNext] == 0) {
+                visited[uNext][vNext] = true;
+                q.push(make_pair(uNext, vNext));
+                f[uNext][vNext] = f[u][v] + 1;
+                traceToEnemyHome[uNext][vNext] = {u, v};
+                if (board[uNext][vNext] == myStableNumber) stableScore[uNext][vNext] = f[uNext][vNext];
+            }
+        }
+    }
+
+    for (int i = 0; i < nRows; i++)
+        for (int j = 0; j < nColumns; j++)
+            if (f[i][j] > 0 && (board[i][j] % 2 == 1 && board[i][j] != myStableNumber))
+                adjustMyStable({i, j}, traceToEnemyHome, f[i][j]);
+
+}
+
 semanticMoves safeStrategyFromUnstable() {
     currentDestination = {-1, -1};
 
@@ -786,6 +875,15 @@ semanticMoves safeStrategyFromUnstable() {
     Position traceToHome[nRows + 5][nColumns + 5];
     Position desStable;
     int maxArea = -1;
+
+    createStableScore();
+    // for (int i = 0; i < nRows; i++){
+        // for (int j = 0; j < nColumns; j++) {
+            // cout << stableScore[i][j];
+        // }
+        // cout << endl;
+    // }
+
 
     for (int i = 0; i < 4; i++) {
         int xNext = curRow + dX[i];
