@@ -614,7 +614,7 @@ int matDis(Position p1, Position p2) {
 }
 
 
-int emptyCellsDistance(Position start) {
+int emptyCellsDistance(Position start, Position traceToHome[nRows + 5][nColumns +5], Position& desStable) {
 
     q = queue< pair<int, int> >();
     memset(visited, false, sizeof(visited));
@@ -628,7 +628,10 @@ int emptyCellsDistance(Position start) {
 
     int res = oo;
 
-    if (isStableCell(start.x, start.y)) return 0;
+    if (isStableCell(start.x, start.y)) {
+        desStable = start;
+        return 0;
+    }
 
     while (!q.empty()) {
         int u = q.front().first;
@@ -650,10 +653,12 @@ int emptyCellsDistance(Position start) {
                 visited[uNext][vNext] = true;
                 q.push(make_pair(uNext, vNext));
                 f[uNext][vNext] = f[u][v] + 1;
+                traceToHome[uNext][vNext] = {u, v};
 
                 if (isStableCell(uNext, vNext)) {
                     if (f[uNext][vNext] < res)  {
                         res = f[uNext][vNext];
+                        desStable = {uNext, vNext};
 
                     }
 
@@ -695,8 +700,8 @@ int distanceFromOtherBotToUnstable(int xNext, int yNext) {
     return res;
 }
 
-bool isSafe(int xNext, int yNext, int& disToHome) {
-    int wayToHome = emptyCellsDistance({xNext, yNext});
+bool isSafe(int xNext, int yNext, int& disToHome, Position traceToHome[nRows + 5][nColumns +5], Position& desStable) {
+    int wayToHome = emptyCellsDistance({xNext, yNext}, traceToHome, desStable);
     int wayToHell = distanceFromOtherBotToUnstable(xNext, yNext);
 
     disToHome = wayToHome;
@@ -707,6 +712,64 @@ bool isSafe(int xNext, int yNext, int& disToHome) {
     return wayToHome + HomeThresHold < wayToHell;
 }
 
+int calArea(Position pos, Position traceToHome[nRows + 5][nColumns +5], Position desStable) {
+    int newBoard[nRows + 5][nColumns + 5];
+    memset(newBoard, 0, sizeof(newBoard));
+    for (int i = 0; i < nRows; i++)
+        for (int j = 0; j < nColumns; j++)
+            if (board[i][j] == myStableNumber || board[i][j] == myUnstableNumber)
+                newBoard[i + 1][j + 1] = board[i][j];
+
+    Position temp = desStable;
+    while (temp.x != pos.x || temp.y != pos.y) {
+        if (board[temp.x][temp.y] != myStableNumber)
+            newBoard[temp.x + 1][temp.y + 1] = myUnstableNumber;
+        // cout << temp.x << " " << temp.y << endl;
+        temp = traceToHome[temp.x][temp.y];
+    }
+
+    if (newBoard[pos.x + 1][pos.y + 1] != myStableNumber)
+        newBoard[pos.x + 1][pos.y + 1] = myUnstableNumber;
+
+    // BFS
+    q = queue< pair<int, int> >();
+
+    q.push(make_pair(0, 0));
+
+    while (!q.empty()) {
+        int u = q.front().first;
+        int v = q.front().second;
+        q.pop();
+
+        for (int i = 0; i <= 3; i++) {
+            int uNext = u + dX[i];
+            int vNext = v + dY[i];
+
+            if ((uNext < 0 || uNext >= nRows + 2 || vNext < 0 || vNext >= nColumns + 2)) continue;
+            if (newBoard[uNext][vNext] == 0) {
+                q.push(make_pair(uNext, vNext));
+                newBoard[uNext][vNext] = myStableNumber;
+            }
+        }
+    }
+
+    // for (int i = 0; i < nRows + 2; i++){
+        // for (int j = 0; j < nColumns + 2; j++) {
+            // cout << newBoard[i][j];
+        // }
+        // cout << endl;
+    // }
+    // cout << endl;
+    int area = 0;
+    for (int i = 0; i < nRows + 2; i++){
+        for (int j = 0; j < nColumns + 2; j++)
+            if (newBoard[i][j] == 0 || newBoard[i][j] == myUnstableNumber) area += 1;
+    }
+
+
+    return area;
+}
+
 semanticMoves safeStrategyFromUnstable() {
     currentDestination = {-1, -1};
 
@@ -715,6 +778,9 @@ semanticMoves safeStrategyFromUnstable() {
     int maxDisToHome = -1;
     int maxDisToStart = -1;
     semanticMoves maxMove;
+    Position traceToHome[nRows + 5][nColumns + 5];
+    Position desStable;
+    int maxArea = -1;
 
     for (int i = 0; i < 4; i++) {
         int xNext = curRow + dX[i];
@@ -724,12 +790,12 @@ semanticMoves safeStrategyFromUnstable() {
 
         if (isThisMoveValid(move, nextVal)) {
 
-            if (isSafe(xNext, yNext, disToHome)) {
-                int disToStart = matDis({xNext, yNext}, startPostition);
-                if (disToStart > maxDisToStart) {
+            if (isSafe(xNext, yNext, disToHome, traceToHome, desStable)) {
+                int area = calArea({xNext, yNext}, traceToHome, desStable);
+                if (area > maxArea) {
                     maxMove = move;
                     // maxDisToHome = disToHome;
-                    maxDisToStart = disToStart;
+                    maxArea = area;
 //                    if (lastMaxToHome > maxDisToHome) {
 //                        isDesToHome = true;
 //                        break;
@@ -741,7 +807,7 @@ semanticMoves safeStrategyFromUnstable() {
         }
     }
 
-    if (maxDisToStart == -1) {
+    if (maxArea == -1) {
         semanticMoves minMove;
         int minDisToHome = oo;
 
@@ -752,7 +818,7 @@ semanticMoves safeStrategyFromUnstable() {
             semanticMoves move = static_cast<semanticMoves>(i);
 
             if (isThisMoveValid(move, nextVal)) {
-                int wayToHome = emptyCellsDistance({xNext, yNext});
+                int wayToHome = emptyCellsDistance({xNext, yNext}, traceToHome, desStable);
                 // cout << xNext << " " << yNext << endl;
                 // DEBUG(wayToHome);
                 // cout << endl;
@@ -892,7 +958,7 @@ int main() {
             }
             // printBoard();
 
-           // lastMove = RIGHT;
+           // lastMove = DOWN;
 //            currentDestination = {11, 13};
 //            exDestination.push_back({8, 13});
             makeBestMove();
