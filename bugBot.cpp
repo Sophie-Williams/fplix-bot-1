@@ -30,7 +30,7 @@ struct Position {
 };
 
 const int oo = 100000;
-const int ThresHold = 3;
+const int ThresHold = 0;
 const int HomeThresHold = 4;
 
 const int nRows = 20;
@@ -647,7 +647,7 @@ int emptyCellsDistance(Position start, Position traceToHome[nRows + 5][nColumns 
 
             if (visited[uNext][vNext]) continue;
             if (!isInsideBoard(uNext, vNext)) continue;
-            if (distanceToStable(uNext, vNext) + f[u][v] >= distanceToAnotherBot(uNext, vNext)) continue;
+            if (distanceToStable(uNext, vNext) + f[u][v] + 2 >= distanceToAnotherBot(uNext, vNext)) continue;
 
             if (board[uNext][vNext] != myUnstableNumber) {
                 visited[uNext][vNext] = true;
@@ -703,6 +703,11 @@ int distanceFromOtherBotToUnstable(int xNext, int yNext) {
 bool isSafe(int xNext, int yNext, int& disToHome, Position traceToHome[nRows + 5][nColumns +5], Position& desStable) {
     int wayToHome = emptyCellsDistance({xNext, yNext}, traceToHome, desStable);
     int wayToHell = distanceFromOtherBotToUnstable(xNext, yNext) - 1; // -1 for next move
+
+//    DEBUG(xNext);
+//    DEBUG(yNext);
+//    DEBUG(wayToHome);
+//    DEBUG(wayToHell);
 
     disToHome = wayToHome;
     // cout << xNext << " " << yNext << endl;
@@ -785,13 +790,14 @@ semanticMoves safeStrategyFromUnstable() {
     for (int i = 0; i < 4; i++) {
         int xNext = curRow + dX[i];
         int yNext = curCol + dY[i];
-
         semanticMoves move = static_cast<semanticMoves>(i);
+
+//        DEBUG(xNext);
+//        DEBUG(yNext);
 
         if (isThisMoveValid(move, nextVal)) {
 
             if (isSafe(xNext, yNext, disToHome, traceToHome, desStable)) {
-
                 int area = calArea({xNext, yNext}, traceToHome, desStable);
                 if (area > maxArea) {
                     maxMove = move;
@@ -914,7 +920,7 @@ int main() {
     isDesToHome = false;
 
     srand(time(NULL));
-       // freopen("bug.txt", "r", stdin);
+//        freopen("bug.txt", "r", stdin);
     int tempRow, tempCol;
     char temp;
 
@@ -934,6 +940,7 @@ int main() {
 
     while(true){
         if (!feof(stdin)){
+//            DEBUG("den");
             // Read current state of the board
             for (int i = 0; i < nRows; i++){
                 for (int j = 0; j < nColumns; j++){
@@ -959,7 +966,7 @@ int main() {
             }
             // printBoard();
 
-           // lastMove = UP;
+//            lastMove = UP;
 //            currentDestination = {11, 13};
 //            exDestination.push_back({8, 13});
             makeBestMove();
@@ -967,4 +974,4 @@ int main() {
         }
     }
 }
-
+//
