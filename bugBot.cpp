@@ -118,6 +118,32 @@ void printMove(semanticMoves move){
     }
 }
 
+bool isStableCell(int x, int y) {
+    return (board[x][y] == myStableNumber);
+}
+
+bool haveTwoOpositeUnstable(int u, int v) {
+    bool check[4];
+    int cnt = 0;
+    for (int i = 0; i <= 3; i++) {
+        int uu = u + dX[i];
+        int vv = v + dY[i];
+        if (!isStableCell(uu, vv)) {
+            check[i] = true;
+            cnt ++;
+        }
+        else check[i] = false;
+    }
+
+    if (cnt == 2) {
+         if (check[0] && check[2]) return true;
+         if (check[1] && check[3]) return true;
+    }
+
+    return false;
+    
+}
+
 bool isThisMoveValid(semanticMoves move, int& nextVal){
     semanticMoves lastSemanticMove;
     bool isFirstMove = false;
@@ -204,10 +230,6 @@ bool isPosOfAnotherBot(int x, int y) {
     }
 
     return false;
-}
-
-bool isStableCell(int x, int y) {
-    return (board[x][y] == myStableNumber);
 }
 
 bool isInsideBoard(int x, int y) {
@@ -338,6 +360,7 @@ semanticMoves greedyMove() {
 //                f[uNext][vNext] = f[u][v] + 1;
                 trace[uNext][vNext] = {u, v};
             } else {
+                if (haveTwoOpositeUnstable(u, v)) continue;
                 if (uNext == currentDestination.x && vNext == currentDestination.y) {
                     trace[uNext][vNext] = {u, v};
                     ok = true;
@@ -447,6 +470,7 @@ semanticMoves otherStrategyMove() {
                 f[uNext][vNext] = f[u][v] + 1;
             } else {
                 if (isInsideBoard(uNext, vNext)) {
+                    if (haveTwoOpositeUnstable(u, v)) continue;
                     if (numAdjStableCell(uNext, vNext) >= 2) {
                         // uNext, vNext is the expected position.
                         primaryPos = {uNext, vNext};
@@ -547,7 +571,7 @@ semanticMoves safeStrategyFromStable() {
                 f[uNext][vNext] = f[u][v] + 1;
             } else {
                 if (isInsideBoard(uNext, vNext)) {
-                    
+                    if (haveTwoOpositeUnstable(u, v)) continue; 
                     if (numAdjStableCell(uNext, vNext) >= 2) {
                         // uNext, vNext is the expected position.
                         primaryPos = {uNext, vNext};
@@ -1011,7 +1035,7 @@ semanticMoves safeStrategyFromUnstable() {
             if (isThisMoveValid(move, nextVal)) {
                 int wayToHome = emptyCellsDistance({xNext, yNext}, traceToHome, desStable);
                 // cout << xNext << " " << yNext << endl;
-                // DEBUG(wayToHome);
+//                 DEBUG(wayToHome);
                 // cout << endl;
                 if (wayToHome < minDisToHome) {
                     minDisToHome = wayToHome;
@@ -1021,11 +1045,34 @@ semanticMoves safeStrategyFromUnstable() {
             }
         }
        // DEBUG(minDisToHome);
-       // cout << "min move" << endl;
+//        cout << "min move" << endl;
        // DEBUG(minMove);
-        return minMove;
+        if (minDisToHome != oo) {
+            return minMove;
+        } else {
+            semanticMoves homeMove;
+            int minHome = oo;
+            for (int i = 0; i < 4; i++) {
+                int xNext = curRow + dX[i];
+                int yNext = curCol + dY[i];
+
+                semanticMoves move = static_cast<semanticMoves>(i);
+                if (isThisMoveValid(move, nextVal)) {
+                    int wayToHome = distanceToStable(xNext, yNext);
+                    if (wayToHome < minHome) {
+                        minHome = wayToHome;
+                        homeMove = move;
+                    }
+                }
+
+
+            }
+            return homeMove;
+
+        }
+
     } else {
-       // cout << "max move" << endl;
+        // cout << "max move" << endl;
         cntMaxMove ++;
         return maxMove;
     }
@@ -1056,7 +1103,7 @@ bool checkCurrentDest() {
             if (u == curRow && v == curCol) {
                 if (!isThisMoveValid(move, nextVal)) continue;
             }
-            
+
             if (!isInsideBoard(uNext, vNext)) continue;
             if (visited[uNext][vNext]) continue;
             if (numAdjStableCell(u, v) == 1) continue;
@@ -1078,7 +1125,7 @@ bool checkCurrentDest() {
         currentDestination = {-1, -1};
     }
 
-    
+
 
 }
 
@@ -1178,6 +1225,7 @@ int main() {
 
     while(true){
         if (!feof(stdin)){
+//            clock_t begin = clock();
             // Read current state of the board
             for (int i = 0; i < nRows; i++){
                 for (int j = 0; j < nColumns; j++){
@@ -1203,7 +1251,7 @@ int main() {
             }
             // printBoard();
 
-//            lastMove = DOWN;
+//            lastMove = UP;
 //            currentDestination = {3, 3};
 //            exDestination.push_back({5, 27});
 //            exDestination.push_back({5, 28});
@@ -1211,6 +1259,9 @@ int main() {
 
 
             makeBestMove();
+//            clock_t end = clock();
+//            double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+//            DEBUG(elapsed_secs);
         }
     }
 }
