@@ -1008,8 +1008,8 @@ semanticMoves safeStrategyFromUnstable() {
             if (isSafe(xNext, yNext, disToHome, traceToHome, desStable)) {
 //                DEBUG("have safe");
                 int area = calArea({xNext, yNext}, traceToHome, desStable);
-                cout << xNext << " " << yNext << endl;
-                DEBUG(area);
+                // cout << xNext << " " << yNext << endl;
+                // DEBUG(area);
                 if (area > maxArea || (area == maxArea && disToHome < minToHome)) {
                     maxMove = move;
                     // maxDisToHome = disToHome;
@@ -1209,7 +1209,8 @@ int main() {
     isDesToHome = false;
 
     srand(time(NULL));
-   freopen("bug.txt", "r", stdin);
+    // freopen("bug.txt", "r", stdin);
+    // lastMove = RIGHT;
     int tempRow, tempCol;
     char temp;
 
@@ -1255,7 +1256,6 @@ int main() {
             }
             // printBoard();
 
-           lastMove = RIGHT;
 //            currentDestination = {3, 3};
 //            exDestination.push_back({5, 27});
 //            exDestination.push_back({5, 28});
