@@ -141,7 +141,7 @@ bool haveTwoOpositeUnstable(int u, int v) {
     }
 
     return false;
-    
+
 }
 
 bool isThisMoveValid(semanticMoves move, int& nextVal){
@@ -314,7 +314,7 @@ semanticMoves moveBeforeGoOutTo(int u, int v) {
 
 semanticMoves greedyMove() {
 //    DEBUG("greedy");
-    
+
 //    DEBUG(currentDestination.x);
 //    DEBUG(currentDestination.y);
 
@@ -348,11 +348,11 @@ semanticMoves greedyMove() {
             if (u == curRow && v == curCol) {
                 if (!isThisMoveValid(move, nextVal)) continue;
             }
-            
+
             if (!isInsideBoard(uNext, vNext)) continue;
             if (visited[uNext][vNext]) continue;
             //            if (uNext == uEx && vNext == vEx) continue;
-            
+
             if (numAdjStableCell(u, v) == 1) continue;
             if (isStableCell(uNext, vNext)) {
                 visited[uNext][vNext] = true;
@@ -375,7 +375,7 @@ semanticMoves greedyMove() {
 
         int maxDis = -1;
         semanticMoves maxMove;
-        
+
         for (int i = 0; i < 4; i++) {
             int uNext = curRow + dX[i];
             int vNext = curCol + dY[i];
@@ -386,7 +386,7 @@ semanticMoves greedyMove() {
                 if (dis > maxDis) {
                     maxDis = dis;
                     maxMove = move;
-                } 
+                }
             }
         }
 
@@ -396,11 +396,11 @@ semanticMoves greedyMove() {
 
         int u = currentDestination.x;
         int v = currentDestination.y;
-        
+
         while (true) {
             int uu = trace[u][v].x;
             int vv = trace[u][v].y;
-            
+
             if (uu == curRow && vv == curCol) {
 
                 if (u == currentDestination.x && v == currentDestination.y) {
@@ -414,7 +414,7 @@ semanticMoves greedyMove() {
         }
     }
 
-    
+
 
 }
 
@@ -455,7 +455,7 @@ semanticMoves otherStrategyMove() {
 
             // NOTE
             semanticMoves move = static_cast<semanticMoves>(i);
-            
+
             if (!isInsideBoard(uNext, vNext)) continue;
             if (u == curRow && v == curCol) {
                 if (!isThisMoveValid(move, nextVal)) continue;
@@ -542,7 +542,7 @@ semanticMoves safeStrategyFromStable() {
      for (int i = 0; i < exDestination.size(); i++) {
         visited[exDestination[i].x][exDestination[i].y] = true;
     }
-    
+
     int nextVal;
 
     while (!q.empty()) {
@@ -556,13 +556,13 @@ semanticMoves safeStrategyFromStable() {
 
             // NOTE
             semanticMoves move = static_cast<semanticMoves>(i);
-            
+
             if (!isInsideBoard(uNext, vNext)) continue;
             if (u == curRow && v == curCol) {
                 if (!isThisMoveValid(move, nextVal)) continue;
             }
             if (visited[uNext][vNext]) continue;
-            if (numAdjStableCell(u, v) == 1) continue; 
+            if (numAdjStableCell(u, v) == 1) continue;
 
             if (isStableCell(uNext, vNext)) {
                 visited[uNext][vNext] = true;
@@ -571,7 +571,7 @@ semanticMoves safeStrategyFromStable() {
                 f[uNext][vNext] = f[u][v] + 1;
             } else {
                 if (isInsideBoard(uNext, vNext)) {
-                    if (haveTwoOpositeUnstable(u, v)) continue; 
+                    if (haveTwoOpositeUnstable(u, v)) continue;
                     if (numAdjStableCell(uNext, vNext) >= 2) {
                         // uNext, vNext is the expected position.
                         primaryPos = {uNext, vNext};
@@ -649,7 +649,7 @@ int distanceToStable(int u, int v) {
             if (isStableCell(i, j)) {
                 if (abs(u - i) + abs(v - j) < res) {
                     res = abs(u - i) + abs(v - j);
-                    
+
                 }
             }
         }
@@ -820,8 +820,8 @@ bool isSafe(int xNext, int yNext, int& disToHome, Position traceToHome[nRows + 5
     bool okWayToHome = doubleCheckWayToHome({xNext, yNext}, desStable);
     if (!okWayToHome) return false;
 
-//    DEBUG(wayToHome);
-//    DEBUG(wayToHell);
+   // DEBUG(wayToHome);
+   // DEBUG(wayToHell);
 
     disToHome = wayToHome;
     return wayToHome < wayToHell;
@@ -985,6 +985,7 @@ semanticMoves safeStrategyFromUnstable() {
     Position traceToHome[nRows + 5][nColumns + 5];
     Position desStable;
     int maxArea = -1;
+    int minToHome = oo;
 
     createStableScore();
     // for (int i = 0; i < nRows; i++){
@@ -999,7 +1000,7 @@ semanticMoves safeStrategyFromUnstable() {
         int xNext = curRow + dX[i];
         int yNext = curCol + dY[i];
         semanticMoves move = static_cast<semanticMoves>(i);
-        
+
 //        DEBUG(xNext);
 //        DEBUG(yNext);
         if (isThisMoveValid(move, nextVal)) {
@@ -1007,10 +1008,13 @@ semanticMoves safeStrategyFromUnstable() {
             if (isSafe(xNext, yNext, disToHome, traceToHome, desStable)) {
 //                DEBUG("have safe");
                 int area = calArea({xNext, yNext}, traceToHome, desStable);
-                if (area > maxArea) {
+                // cout << xNext << " " << yNext << endl;
+                // DEBUG(area);
+                if (area > maxArea || (area == maxArea && disToHome < minToHome)) {
                     maxMove = move;
                     // maxDisToHome = disToHome;
                     maxArea = area;
+                    minToHome = disToHome;
 //                    if (lastMaxToHome > maxDisToHome) {
 //                        isDesToHome = true;
 //                        break;
@@ -1205,7 +1209,8 @@ int main() {
     isDesToHome = false;
 
     srand(time(NULL));
-//    freopen("bug.txt", "r", stdin);
+    // freopen("bug.txt", "r", stdin);
+    // lastMove = RIGHT;
     int tempRow, tempCol;
     char temp;
 
@@ -1251,7 +1256,6 @@ int main() {
             }
             // printBoard();
 
-//            lastMove = UP;
 //            currentDestination = {3, 3};
 //            exDestination.push_back({5, 27});
 //            exDestination.push_back({5, 28});
