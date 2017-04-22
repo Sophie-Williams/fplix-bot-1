@@ -314,7 +314,6 @@ semanticMoves moveBeforeGoOutTo(int u, int v) {
 
 semanticMoves greedyMove() {
 //    DEBUG("greedy");
-    
 //    DEBUG(currentDestination.x);
 //    DEBUG(currentDestination.y);
 
@@ -462,8 +461,9 @@ semanticMoves otherStrategyMove() {
             }
 
             if (visited[uNext][vNext]) continue;
-            //            if (uNext == uEx && vNext == vEx) continue;
+            if (isPosOfAnotherBot(uNext, vNext)) continue;
             if (numAdjStableCell(u, v) == 1) continue;
+
             if (isStableCell(uNext, vNext)) {
                 visited[uNext][vNext] = true;
                 q.push(make_pair(uNext, vNext));
@@ -562,6 +562,7 @@ semanticMoves safeStrategyFromStable() {
                 if (!isThisMoveValid(move, nextVal)) continue;
             }
             if (visited[uNext][vNext]) continue;
+            if (isPosOfAnotherBot(uNext, vNext)) continue;
             if (numAdjStableCell(u, v) == 1) continue; 
 
             if (isStableCell(uNext, vNext)) {
@@ -1251,7 +1252,7 @@ int main() {
             }
             // printBoard();
 
-//            lastMove = UP;
+//            lastMove = RIGHT;
 //            currentDestination = {3, 3};
 //            exDestination.push_back({5, 27});
 //            exDestination.push_back({5, 28});
