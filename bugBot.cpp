@@ -756,11 +756,12 @@ void makeBestMove(){
 
 int main() {
     srand(time(NULL));
-//    freopen("bug.txt", "r", stdin);
+        freopen("bug.txt", "r", stdin);
+        lastMove = RIGHT;
     int tempRow, tempCol;
     char temp;
 
-//    initBoard();
+    //    initBoard();
     // Read initial inputs
     cin >> nBots;
     cin >> myBotId;
@@ -781,31 +782,39 @@ int main() {
                 for (int j = 0; j < nColumns; j++){
                     cin >> temp;
                     board[i][j] = temp - 48;
+                    
+                    if (board[i][j] == 9) board[i][j] = 0;
                 }
             }
             
-//            printBoard();
+            printBoard();
 
             int otherBotCounts = 0;
             // Read current position of all bots
             for (int i = 1; i <= nBots; i++){
-                cin >> tempRow >> tempCol;
-                if (i == myBotId){
-                    curRow = tempRow;
-                    curCol = tempCol;
-                } else {
-                    otherBotCounts++;
-                    currentBotPosition[otherBotCounts] = {tempRow, tempCol};
+                char t1, t2;
+                cin >> t1 >> t2;
+                if (t1 != '-') {
+                    tempRow = t1 - 48;
+                    tempCol = t2 - 48;
+                    if (i == myBotId){
+                        curRow = tempRow;
+                        curCol = tempCol;
+                    } else {
+                        otherBotCounts++;
+                        currentBotPosition[otherBotCounts] = {tempRow, tempCol};
+                    }
                 }
+
                 //board[tempRow][tempCol] = 10 * i; //TODO: Mapping function
             }
             // printBoard();
 
-//            lastMove = DOWN;
-//            currentDestination = {11, 13};
-//            exDestination.push_back({8, 13});
+
+            //            currentDestination = {11, 13};
+            //            exDestination.push_back({8, 13});
             makeBestMove();
-//            DEBUG(exDestination.size());
+            //            DEBUG(exDestination.size());
         }
     }
 }
